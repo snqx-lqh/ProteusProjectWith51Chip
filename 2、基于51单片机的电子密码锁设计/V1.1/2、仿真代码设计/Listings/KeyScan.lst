@@ -1,0 +1,112 @@
+C51 COMPILER V9.60.0.0   KEYSCAN                                                           07/05/2025 14:27:21 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE KEYSCAN
+OBJECT MODULE PLACED IN .\Objects\KeyScan.obj
+COMPILER INVOKED BY: E:\Program\Keil5\C51\BIN\C51.EXE KeyScan.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\List
+                    -ings\KeyScan.lst) OBJECT(.\Objects\KeyScan.obj)
+
+line level    source
+
+   1          #include "KeyScan.h"
+   2          
+   3          u8 KeyValue = 0;
+   4          u8 KeyState = 0; //1 为按下 0 为抬起
+   5          
+   6          /**
+   7            * @name    KeyScan
+   8            * @brief   按键检测函数
+   9            * @param   : [输入/出] 
+  10            * @retval  返回值
+  11            */
+  12          //void KeyScan(void)
+  13          //{
+  14          //    static u8 count = 0;
+  15          //      GPIO_KEY=0x0f;
+  16          //      if(GPIO_KEY!=0x0f && KeyState == 0)
+  17          //      {
+  18          //        count ++;
+  19          //              if(GPIO_KEY!=0x0f && count > 20 && KeyState == 0)
+  20          //              {
+  21          //            count = 0;
+  22          //                      KeyState = 1;
+  23          //                      //列
+  24          //                      GPIO_KEY=0X0F;
+  25          //                      switch(GPIO_KEY)
+  26          //                      {
+  27          //                              case(0X07):     KeyValue=1;break;
+  28          //                              case(0X0b):     KeyValue=2;break;
+  29          //                              case(0X0d): KeyValue=3;break;
+  30          //                              case(0X0e):     KeyValue=4;break;
+  31          //                      }
+  32          //                      //行
+  33          //                      GPIO_KEY=0XF0;
+  34          //                      switch(GPIO_KEY)
+  35          //                      {
+  36          //                              case(0X70):     KeyValue=KeyValue;break;
+  37          //                              case(0Xb0):     KeyValue=KeyValue+4;break;
+  38          //                              case(0Xd0): KeyValue=KeyValue+8;break;
+  39          //                              case(0Xe0):     KeyValue=KeyValue+12;break;
+  40          //                      }
+  41          //              }
+  42          //      }else if(GPIO_KEY==0x0F && KeyState == 1)
+  43          //    {
+  44          //        KeyState = 0;
+  45          //        KeyValue = 0;
+  46          //    }
+  47          //}
+  48          
+  49          u8 KeyScan(void)
+  50          {
+  51   1          static u8 count = 0;
+  52   1              GPIO_KEY=0x0f;
+  53   1              if(GPIO_KEY!=0x0f && KeyState == 0)
+  54   1              {
+C51 COMPILER V9.60.0.0   KEYSCAN                                                           07/05/2025 14:27:21 PAGE 2   
+
+  55   2              count ++;
+  56   2                      if(GPIO_KEY!=0x0f && count > 20 && KeyState == 0)
+  57   2                      {
+  58   3                  count = 0;
+  59   3                              KeyState = 1;
+  60   3                              //列
+  61   3                              GPIO_KEY=0X0F;
+  62   3                              switch(GPIO_KEY)
+  63   3                              {
+  64   4                                      case(0X07):     KeyValue=1;break;
+  65   4                                      case(0X0b):     KeyValue=2;break;
+  66   4                                      case(0X0d): KeyValue=3;break;
+  67   4                                      case(0X0e):     KeyValue=4;break;
+  68   4                              }
+  69   3                              //行
+  70   3                              GPIO_KEY=0XF0;
+  71   3                              switch(GPIO_KEY)
+  72   3                              {
+  73   4                                      case(0X70):     KeyValue=KeyValue;break;
+  74   4                                      case(0Xb0):     KeyValue=KeyValue+4;break;
+  75   4                                      case(0Xd0): KeyValue=KeyValue+8;break;
+  76   4                                      case(0Xe0):     KeyValue=KeyValue+12;break;
+  77   4                              }
+  78   3                              return KeyValue;
+  79   3                      }
+  80   2              }else if(GPIO_KEY==0x0F && KeyState == 1)
+  81   1          {
+  82   2              KeyState = 0;
+  83   2              KeyValue = 0;
+  84   2          }
+  85   1              return 0;
+  86   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    141    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

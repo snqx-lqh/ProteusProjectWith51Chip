@@ -1,0 +1,412 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              07/03/2022 14:53:04 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\software\Program\Keil5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(
+                    -.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include "main.h"
+   3          
+   4          #include "seg.h"
+   5          #include "ds1302.h"
+   6          
+   7          sbit KEY0 = P3^4;
+   8          sbit KEY1 = P3^5;
+   9          sbit KEY2 = P3^6;
+  10          sbit KEY3 = P3^7;
+  11          
+  12          //按键是否按下的标志位，按下为1，没按下为0
+  13          bit  isKey0 = 0; //修改
+  14          bit  isKey1 = 0; //增加---修改显示
+  15          bit  isKey2 = 0; //减少
+  16          bit  isKey3 = 0; //确认
+  17          
+  18          //0 正常显示状态  1 修改时间状态
+  19          bit  changeOrNormalState = 0;
+  20          //显示模式 0 显示正常时分秒  1 显示正常年月日  2 显示修改时间下的时分秒  3显示修改时间下的年月日
+  21          u8   showMode = 0;
+  22          //正在修改的变量 0 秒 1 分 2 时 3 日 4 月 5 年
+  23          u8   changeCount = 0;
+  24          
+  25          void Timer0Init(void);
+  26          void segBuffChange(void);
+  27          void ClockChangeFunction(void);
+  28          void dataAdd(void);
+  29          void dataSub(void);
+  30          void DataTempGet(void);
+  31          
+  32          void main()
+  33          {
+  34   1              ds1302init();
+  35   1              Timer0Init();
+  36   1              while(1)
+  37   1              {
+  38   2                      ds1302readtime();
+  39   2                      ClockChangeFunction();
+  40   2              }
+  41   1      }
+  42          
+  43          /**
+  44            * @name    SegBuffChange
+  45            * @brief   根据显示状态变量，修改现在的显示变量
+  46            * @param   : [输入/出] 
+  47            * @retval  返回值
+  48            */
+  49          void SegBuffChange()
+  50          {
+  51   1              if(showMode == 0)
+  52   1              {
+  53   2                      segBuff[5] = second%10;
+  54   2                      segBuff[4] = second/10;
+C51 COMPILER V9.60.0.0   MAIN                                                              07/03/2022 14:53:04 PAGE 2   
+
+  55   2                      segBuff[3] = minute%10;
+  56   2                      segBuff[2] = minute/10;
+  57   2                      segBuff[1] = hour%10;
+  58   2                      segBuff[0] = hour/10;
+  59   2              }else if(showMode == 1)
+  60   1              {
+  61   2                      segBuff[5] = day%10;
+  62   2                      segBuff[4] = day/10;
+  63   2                      segBuff[3] = month%10;
+  64   2                      segBuff[2] = month/10;
+  65   2                      segBuff[1] = year%10;
+  66   2                      segBuff[0] = year/10;
+  67   2              }else if(showMode == 2)
+  68   1              {
+  69   2                      segBuff[5] = secondTemp%10;
+  70   2                      segBuff[4] = secondTemp/10;
+  71   2                      segBuff[3] = minuteTemp%10;
+  72   2                      segBuff[2] = minuteTemp/10;
+  73   2                      segBuff[1] = hourTemp%10;
+  74   2                      segBuff[0] = hourTemp/10;
+  75   2              }else if(showMode == 3)
+  76   1              {
+  77   2                      segBuff[5] = dayTemp%10;
+  78   2                      segBuff[4] = dayTemp/10;
+  79   2                      segBuff[3] = monthTemp%10;
+  80   2                      segBuff[2] = monthTemp/10;
+  81   2                      segBuff[1] = yearTemp%10;
+  82   2                      segBuff[0] = yearTemp/10;
+  83   2              }
+  84   1      }
+  85          
+  86          /**
+  87            * @name    KeyScan
+  88            * @brief   按键按下模拟人体感应和垃圾桶装满
+  89            * @param   mode: 1 连续 0 不连续 
+  90            * @retval  返回值
+  91            */
+  92          void KeyScan(u8 mode)
+  93          {
+  94   1          static int keyCount = 0;
+  95   1          static int keyState = 0;
+  96   1          if(mode == 1) keyState=0;
+  97   1          if (keyState == 0 && (KEY0 == 0||KEY1 == 0||KEY2 == 0||KEY3 == 0))
+  98   1          {
+  99   2              keyCount++;
+ 100   2              if(keyCount>2)
+ 101   2              {
+ 102   3                  keyState = 1;
+ 103   3                  keyCount=0;
+ 104   3                  if(KEY0 == 0) isKey0 = 1;
+ 105   3                  else if(KEY1 == 0) isKey1 = 1;
+ 106   3                              else if(KEY2 == 0) isKey2 = 1;
+ 107   3                              else if(KEY3 == 0) isKey3 = 1;
+ 108   3              }
+ 109   2          } else if (KEY0 == 1 && KEY1 == 1 && KEY2 == 1 && KEY3 == 1)
+ 110   1          {
+ 111   2              keyState = 0;
+ 112   2          }
+ 113   1      }
+ 114          
+ 115          /**
+ 116            * @name    ClockChangeFunction
+C51 COMPILER V9.60.0.0   MAIN                                                              07/03/2022 14:53:04 PAGE 3   
+
+ 117            * @brief   按键按下后的执行函数
+ 118            * @param   : [输入/出] 
+ 119            * @retval  返回值
+ 120            */
+ 121          void ClockChangeFunction()
+ 122          {
+ 123   1              if(isKey0 == 1)
+ 124   1              {
+ 125   2                      isKey0 = 0;
+ 126   2                      if(changeCount == 0 && changeOrNormalState == 0)//修改的位选为0，即为秒，同时显示状态为正常显示状态下
+ 127   2                      {
+ 128   3                              changeOrNormalState = 1;//显示状态改为修改时间模式
+ 129   3                              DataTempGet();//获取修改前的时间变量值
+ 130   3                              showMode = 2;//显示模式为显示修改时间下的时分秒
+ 131   3                      }else if(changeOrNormalState == 1)//假如为显示模式
+ 132   2                      {
+ 133   3                              changeCount++;//按键按下位次++
+ 134   3                              if(changeCount > 5)
+ 135   3                                      changeCount = 0;
+ 136   3                              if(changeCount > 2)//时分秒是0、1、2，大于2就要换成年月日显示
+ 137   3                                      showMode = 3;//显示模式为显示修改时间下的年月日
+ 138   3                              else
+ 139   3                                      showMode = 2;
+ 140   3                      }
+ 141   2              }else if(isKey1 == 1)
+ 142   1              {
+ 143   2                      isKey1 = 0;
+ 144   2                      if(changeOrNormalState == 1)//显示状态为修改时间模式
+ 145   2                      {
+ 146   3                              dataAdd();//对应位次时间变量增加
+ 147   3                      }else //正常显示模式
+ 148   2                      {
+ 149   3                              if(showMode == 0)//切换时间和日期的显示
+ 150   3                                      showMode = 1;
+ 151   3                              else if(showMode == 1)
+ 152   3                                      showMode = 0;
+ 153   3                      }
+ 154   2              }else if(isKey2 == 1)
+ 155   1              {
+ 156   2                      isKey2 = 0;
+ 157   2                      if(changeOrNormalState == 1)//和增加一样
+ 158   2                      {
+ 159   3                              dataSub();
+ 160   3                      }
+ 161   2              }else if(isKey3 == 1)
+ 162   1              {
+ 163   2                      isKey3 = 0;
+ 164   2                      if(changeOrNormalState == 1)//在修改模式下按下
+ 165   2                      {
+ 166   3                              changeOrNormalState = 0;//变为正常显示模式
+ 167   3                              ds1302writetime();//写入修改后的时间
+ 168   3                              showMode = 0;//显示模式为时分秒
+ 169   3                              changeCount = 0;//修改位次归零
+ 170   3                      }
+ 171   2              }
+ 172   1      }
+ 173          
+ 174          /**
+ 175            * @name    DataTempGet
+ 176            * @brief   修改按键按下后，将现在的时间，放入temp中
+ 177            * @param   : [输入/出] 
+ 178            * @retval  返回值
+C51 COMPILER V9.60.0.0   MAIN                                                              07/03/2022 14:53:04 PAGE 4   
+
+ 179            */
+ 180          void DataTempGet()
+ 181          {
+ 182   1              secondTemp = second;
+ 183   1              minuteTemp = minute;
+ 184   1              hourTemp   = hour;
+ 185   1              dayTemp    = day;
+ 186   1              monthTemp  = month;
+ 187   1              weekTemp   = week;
+ 188   1              yearTemp   = year;
+ 189   1      }
+ 190          
+ 191          /**
+ 192            * @name    dataAdd
+ 193            * @brief   增加按键按下后，时间变量的变化方式，主要是有个平闰年的处理，其他都比较正常
+ 194            * @param   : [输入/出] 
+ 195            * @retval  返回值
+ 196            */
+ 197          void dataAdd()
+ 198          {
+ 199   1              if(changeCount == 0)
+ 200   1              {
+ 201   2                      secondTemp ++;
+ 202   2                      if(secondTemp > 59)
+ 203   2                              secondTemp = 0;
+ 204   2              }else if(changeCount == 1)
+ 205   1              {
+ 206   2                      minuteTemp ++;
+ 207   2                      if(minuteTemp > 59)
+ 208   2                              minuteTemp = 0;
+ 209   2              }else if(changeCount == 2)
+ 210   1              {
+ 211   2                      hourTemp ++;
+ 212   2                      if(hourTemp > 23)
+ 213   2                              hourTemp = 0;
+ 214   2              }else if(changeCount == 3)
+ 215   1              {
+ 216   2                      dayTemp ++;
+ 217   2                      if(monthTemp == 1 || monthTemp == 3 || monthTemp == 5 || monthTemp == 7 || monthTemp == 8 || monthTemp =
+             -= 10 || monthTemp == 12)
+ 218   2                      {
+ 219   3                              if(dayTemp > 31)
+ 220   3                                      dayTemp = 1;
+ 221   3                      }else if(monthTemp == 3 || monthTemp == 6 || monthTemp == 9 || monthTemp == 11)
+ 222   2                      {
+ 223   3                              if(dayTemp > 30)
+ 224   3                                      dayTemp = 1;
+ 225   3                      }else if(monthTemp == 2)
+ 226   2                      {
+ 227   3                              if((2000+year)%400==0)
+ 228   3                              {
+ 229   4                                      if(dayTemp > 29)
+ 230   4                                              dayTemp = 1;
+ 231   4                              }
+ 232   3                              else
+ 233   3                              {
+ 234   4                                      if((2000+year)%4==0&&(2000+year)%100!=0)
+ 235   4                                      {
+ 236   5                                              if(dayTemp > 29)
+ 237   5                                                      dayTemp = 1;
+ 238   5                                      }else
+ 239   4                                      {
+C51 COMPILER V9.60.0.0   MAIN                                                              07/03/2022 14:53:04 PAGE 5   
+
+ 240   5                                              if(dayTemp > 28)
+ 241   5                                                      dayTemp = 1;
+ 242   5                                      }
+ 243   4                              }
+ 244   3                      }
+ 245   2              }else if(changeCount == 4)
+ 246   1              {
+ 247   2                      monthTemp ++;
+ 248   2                      if(monthTemp > 12)
+ 249   2                              monthTemp = 1;
+ 250   2              }else if(changeCount == 5)
+ 251   1              {
+ 252   2                      yearTemp ++;
+ 253   2                      if(yearTemp > 99)
+ 254   2                              yearTemp = 0;
+ 255   2              }
+ 256   1      }
+ 257          
+ 258          /**
+ 259            * @name    dataSub
+ 260            * @brief   减少按键按下后，时间变量的变化方式
+ 261            * @param   : [输入/出] 
+ 262            * @retval  返回值
+ 263            */
+ 264          void dataSub()
+ 265          {
+ 266   1              if(changeCount == 0)
+ 267   1              {
+ 268   2                      secondTemp --;
+ 269   2                      if((char)secondTemp < 0)
+ 270   2                              secondTemp = 59;
+ 271   2              }else if(changeCount == 1)
+ 272   1              {
+ 273   2                      minuteTemp --;
+ 274   2                      if((char)minuteTemp < 0)
+ 275   2                              minuteTemp = 59;
+ 276   2              }else if(changeCount == 2)
+ 277   1              {
+ 278   2                      hourTemp --;
+ 279   2                      if((char)hourTemp < 0)
+ 280   2                              hourTemp = 23;
+ 281   2              }else if(changeCount == 3)
+ 282   1              {
+ 283   2                      dayTemp --;
+ 284   2                      if(monthTemp == 1 || monthTemp == 3 || monthTemp == 5 || monthTemp == 7 || monthTemp == 8 || monthTemp =
+             -= 10 || monthTemp == 12)
+ 285   2                      {
+ 286   3                              if(dayTemp < 1)
+ 287   3                                      dayTemp = 31;
+ 288   3                      }else if(monthTemp == 3 || monthTemp == 6 || monthTemp == 9 || monthTemp == 11)
+ 289   2                      {
+ 290   3                              if(dayTemp < 1)
+ 291   3                                      dayTemp = 30;
+ 292   3                      }else if(monthTemp == 2)
+ 293   2                      {
+ 294   3                              if((2000+year)%400==0)
+ 295   3                              {
+ 296   4                                      if(dayTemp < 1)
+ 297   4                                              dayTemp = 29;
+ 298   4                              }
+ 299   3                              else
+ 300   3                              {
+C51 COMPILER V9.60.0.0   MAIN                                                              07/03/2022 14:53:04 PAGE 6   
+
+ 301   4                                      if((2000+year)%4==0&&(2000+year)%100!=0)
+ 302   4                                      {
+ 303   5                                              if(dayTemp < 1)
+ 304   5                                                      dayTemp = 29;
+ 305   5                                      }else
+ 306   4                                      {
+ 307   5                                              if(dayTemp < 1)
+ 308   5                                                      dayTemp = 28;
+ 309   5                                      }
+ 310   4                              }
+ 311   3                              
+ 312   3                      }
+ 313   2              }else if(changeCount == 4)
+ 314   1              {
+ 315   2                      monthTemp --;
+ 316   2                      if(monthTemp < 1)
+ 317   2                              monthTemp = 12;
+ 318   2              }else if(changeCount == 5)
+ 319   1              {
+ 320   2                      yearTemp --;
+ 321   2                      if((char)yearTemp < 0)
+ 322   2                              yearTemp = 99;
+ 323   2              }
+ 324   1      }
+ 325          
+ 326          /**
+ 327            * @name    dataBlink
+ 328            * @brief   修改时间模式下，选中的时间变量闪烁
+ 329            * @param   : [输入/出] 
+ 330            * @retval  返回值
+ 331            */
+ 332          void dataBlink()
+ 333          {
+ 334   1              static u8  blinkCount = 0;
+ 335   1              static bit blinkState = 0;
+ 336   1              if(changeOrNormalState == 1)//在按键修改模式下
+ 337   1              {
+ 338   2                      blinkCount++;
+ 339   2                      if(blinkCount == 80)//每隔80*5 闪烁状态值转换
+ 340   2                      {
+ 341   3                              blinkState = !blinkState;
+ 342   3                              blinkCount = 0;
+ 343   3                      }
+ 344   2              }else
+ 345   1              {
+ 346   2                      blinkState = 0;
+ 347   2              }
+ 348   1              if(blinkState == 1)//假如闪烁状态值为1，该位次变量数码管不显示，我在seg.c中有定义，10就是不显示
+ 349   1              {
+ 350   2                      segBuff[(2-changeCount%3)*2+1] = 10;
+ 351   2                      segBuff[(2-changeCount%3)*2]   = 10;
+ 352   2              }
+ 353   1      }
+ 354          
+ 355          void Timer0Init(void) //5毫秒@12MHz
+ 356          {
+ 357   1          TMOD = 0x01; //设置定时器模式
+ 358   1          TL0 = 0x78;  //设置定时0初始值
+ 359   1          TH0 = 0xEC;  //设置定时0初始值
+ 360   1          TF0 = 0;     //清除TF0标志
+ 361   1          TR0 = 1;     //定时器0开始计时
+ 362   1          ET0 = 1;
+C51 COMPILER V9.60.0.0   MAIN                                                              07/03/2022 14:53:04 PAGE 7   
+
+ 363   1          EA = 1;
+ 364   1      }
+ 365          
+ 366          void Timer0() interrupt 1
+ 367          {
+ 368   1          TL0 = 0x78; //设置定时0初始值
+ 369   1          TH0 = 0xEC; //设置定时0初始值
+ 370   1              KeyScan(0);//按键扫描
+ 371   1              segBuffChange();//显示BUFF改变
+ 372   1              dataBlink();//将需要闪烁的位次变量修改
+ 373   1              SegShow();//数码管显示
+ 374   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1282    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      7    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      6    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

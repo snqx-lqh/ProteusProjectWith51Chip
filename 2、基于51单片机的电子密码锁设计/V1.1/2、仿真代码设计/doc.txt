@@ -1,0 +1,25 @@
+****************
+****************
+主界面:
+combination lock
+----  lock  ----
+
+开锁后：
+combination lock
+----  open  ----
+
+输入密码：
+combination lock
+pwd :******
+
+修改密码：
+combination lock
+new :******
+
+成功：
+combination lock
+---- success----
+
+失败：
+combination lock
+---- failed ----
