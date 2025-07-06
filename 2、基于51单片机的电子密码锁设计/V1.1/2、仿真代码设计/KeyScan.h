@@ -22,6 +22,6 @@
 #define KEY_Change  12
 #define KEY_Confirm 16
 
-u8 KeyScan(void);
+u8 KeyScan(u8 xms);
 
 #endif

@@ -6,19 +6,19 @@
   * @param   : [输入/出] 
   * @retval  返回值
   */
-u8 KeyScan(void)
+u8 KeyScan(u8 xms)
 {
     static u8 count = 0;
-	u8 KeyState = 0; //1 为按下 0 为抬起
+	static u8 KeyState = 0; //1 为按下 0 为抬起
 	u8 KeyValue = 0;
 	
 	GPIO_KEY=0x0f;
 	if(GPIO_KEY!=0x0f && KeyState == 0)
 	{
         count ++;
-		if(GPIO_KEY!=0x0f && count > 20 && KeyState == 0)
+		if(GPIO_KEY!=0x0f && (count * xms) > 20 && KeyState == 0)
 		{
-            count = 0;
+            count    = 0;
 			KeyState = 1;
 			//列
 			GPIO_KEY=0X0F;

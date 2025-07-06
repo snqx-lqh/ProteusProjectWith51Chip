@@ -23,7 +23,10 @@
 
 u8 DisBuff[17]={0};//显示缓冲区
 u8 Password[7] = "666666";//初始密码
-u8 KeyValueTable[16]={1,2,3,10,4,5,6,10,7,8,9,10,10,0,10,10};//键盘映射表
+u8 KeyValueTable[16]={1 ,2 ,3 ,10,
+                      4 ,5 ,6 ,10,
+                      7 ,8 ,9 ,10,
+                      10,0 ,10,10};//键盘映射表
 
 u8 KeyValueGet = 0;
 
@@ -245,6 +248,6 @@ void Timer0() interrupt 1
 {
     TL0 = 0x78; //设置定时0初始值
     TH0 = 0xEC; //设置定时0初始值
-    KeyValueGet = KeyScan();
+    KeyValueGet = KeyScan(5);
 
 }

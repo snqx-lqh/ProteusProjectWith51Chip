@@ -23,3 +23,7 @@ CSDN：https://blog.csdn.net/wan1234512/article/details/148654112?spm=1011.2415.
 ## 6、基于51单片机的超声波测距
 
 CSDN：https://blog.csdn.net/wan1234512/article/details/148655212?spm=1011.2415.3001.5331
+
+## 7、基于51单片机的智能温湿度大棚设计
+
+CSDN：https://blog.csdn.net/wan1234512/article/details/148981102?spm=1011.2415.3001.5331
